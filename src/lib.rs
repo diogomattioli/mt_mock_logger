@@ -24,11 +24,15 @@ impl MockLogger {
         MockLogger { mutex: ReentrantMutex::new(RefCell::new(None)) }
     }
 
-    pub fn set_logger<'a>(logger: impl log::Log + 'static) -> MockLoggerGuard<'a> {
+    pub fn set_logger<'a>(
+        logger: impl log::Log + 'static,
+        level: log::LevelFilter
+    ) -> MockLoggerGuard<'a> {
         let lock = MOCK_LOGGER.mutex.lock();
         lock.borrow_mut().replace(Box::new(logger));
 
         let _ = log::set_logger(&MOCK_LOGGER);
+        log::set_max_level(level);
 
         MockLoggerGuard(lock)
     }
@@ -86,8 +90,7 @@ mod tests {
         let mut my_logger = MockMyLogger::new();
         my_logger.expect_log().once().return_const(());
 
-        let _guard = MockLogger::set_logger(my_logger);
-        log::set_max_level(log::LevelFilter::Trace);
+        let _guard = MockLogger::set_logger(my_logger, log::LevelFilter::Trace);
 
         log::info!("ok");
     }
@@ -97,8 +100,7 @@ mod tests {
         let mut my_logger = MockMyLogger::new();
         my_logger.expect_log().never().return_const(());
 
-        let _guard = MockLogger::set_logger(my_logger);
-        log::set_max_level(log::LevelFilter::Trace);
+        let _guard = MockLogger::set_logger(my_logger, log::LevelFilter::Trace);
 
         // log::info!("ok");
     }
