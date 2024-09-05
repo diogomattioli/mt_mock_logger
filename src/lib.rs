@@ -48,9 +48,10 @@ impl log::Log for MockLogger {
         let lock = self.mutex.lock();
         let data = lock.borrow();
         if let Some(logger) = data.as_ref() {
-            return logger.enabled(metadata);
+            logger.enabled(metadata)
+        } else {
+            false
         }
-        false
     }
 
     fn log(&self, record: &log::Record) {
