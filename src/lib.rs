@@ -46,7 +46,7 @@ impl MockLogger {
 impl log::Log for MockLogger {
     fn enabled(&self, metadata: &log::Metadata) -> bool {
         let lock = self.mutex.lock();
-        let data = lock.borrow_mut();
+        let data = lock.borrow();
         if let Some(logger) = data.as_ref() {
             return logger.enabled(metadata);
         }
@@ -55,7 +55,7 @@ impl log::Log for MockLogger {
 
     fn log(&self, record: &log::Record) {
         let lock = self.mutex.lock();
-        let data = lock.borrow_mut();
+        let data = lock.borrow();
         if let Some(logger) = data.as_ref() {
             logger.log(record);
         }
@@ -63,7 +63,7 @@ impl log::Log for MockLogger {
 
     fn flush(&self) {
         let lock = self.mutex.lock();
-        let data = lock.borrow_mut();
+        let data = lock.borrow();
         if let Some(logger) = data.as_ref() {
             logger.flush();
         }
