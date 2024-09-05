@@ -1,71 +1,79 @@
-use std::cell::RefCell;
-
-use log::Log;
-use parking_lot::{ lock_api::ReentrantMutexGuard, RawMutex, RawThreadId, ReentrantMutex };
+use std::{ collections::HashMap, sync::{ LazyLock, RwLock }, thread::ThreadId };
 
 static MOCK_LOGGER: MockLogger = MockLogger::new();
 
-pub struct MockLoggerGuard<'a>(
-    ReentrantMutexGuard<'a, RawMutex, RawThreadId, RefCell<Option<Box<dyn Log>>>>,
-);
+pub struct MockLoggerGuard;
 
-impl<'a> Drop for MockLoggerGuard<'a> {
+impl Drop for MockLoggerGuard {
     fn drop(&mut self) {
-        MockLogger::clear();
+        MockLogger::remove_logger();
     }
 }
 
 pub struct MockLogger {
-    mutex: ReentrantMutex<RefCell<Option<Box<dyn log::Log>>>>,
+    mutex: LazyLock<RwLock<HashMap<ThreadId, Box<dyn log::Log>>>>,
 }
 
 impl MockLogger {
     const fn new() -> Self {
-        MockLogger { mutex: ReentrantMutex::new(RefCell::new(None)) }
+        MockLogger {
+            mutex: LazyLock::new(|| {
+                let _ = log::set_logger(&MOCK_LOGGER);
+                RwLock::new(HashMap::new())
+            }),
+        }
     }
 
     pub fn set_logger<'a>(
         logger: impl log::Log + 'static,
         level: log::LevelFilter
-    ) -> MockLoggerGuard<'a> {
-        let lock = MOCK_LOGGER.mutex.lock();
-        lock.borrow_mut().replace(Box::new(logger));
+    ) -> MockLoggerGuard {
+        MOCK_LOGGER.mutex.write()
+            .expect("mutex is poisoned")
+            .insert(std::thread::current().id(), Box::new(logger));
 
-        let _ = log::set_logger(&MOCK_LOGGER);
         log::set_max_level(level);
 
-        MockLoggerGuard(lock)
+        MockLoggerGuard
     }
 
-    pub fn clear() {
-        let lock = MOCK_LOGGER.mutex.lock();
-        lock.borrow_mut().take();
+    fn remove_logger() {
+        MOCK_LOGGER.mutex.write().expect("mutex is poisoned").remove(&std::thread::current().id());
     }
 }
 
 impl log::Log for MockLogger {
     fn enabled(&self, metadata: &log::Metadata) -> bool {
-        let lock = self.mutex.lock();
-        let data = lock.borrow();
-        if let Some(logger) = data.as_ref() {
-            logger.enabled(metadata)
-        } else {
-            false
+        if
+            let Some(logger) = self.mutex
+                .read()
+                .expect("mutex is poisoned")
+                .get(&std::thread::current().id())
+        {
+            return logger.enabled(metadata);
         }
+
+        false
     }
 
     fn log(&self, record: &log::Record) {
-        let lock = self.mutex.lock();
-        let data = lock.borrow();
-        if let Some(logger) = data.as_ref() {
+        if
+            let Some(logger) = self.mutex
+                .read()
+                .expect("mutex is poisoned")
+                .get(&std::thread::current().id())
+        {
             logger.log(record);
         }
     }
 
     fn flush(&self) {
-        let lock = self.mutex.lock();
-        let data = lock.borrow();
-        if let Some(logger) = data.as_ref() {
+        if
+            let Some(logger) = self.mutex
+                .read()
+                .expect("mutex is poisoned")
+                .get(&std::thread::current().id())
+        {
             logger.flush();
         }
     }
