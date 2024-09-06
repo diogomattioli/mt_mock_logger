@@ -96,7 +96,7 @@ mod tests {
     }
 
     #[test]
-    fn it_works() {
+    fn test_logging() {
         let mut my_logger = MockMyLogger::new();
         my_logger
             .expect_log()
@@ -111,12 +111,17 @@ mod tests {
     }
 
     #[test]
-    fn it_works_2() {
+    fn test_logging_below_max_level() {
         let mut my_logger = MockMyLogger::new();
         my_logger.expect_log().never().return_const(());
 
         let _guard = MockLogger::set_logger(my_logger, log::LevelFilter::Info);
 
+        log::trace!("ok");
+    }
+
+    #[test]
+    fn test_no_logger() {
         log::trace!("ok");
     }
 }
