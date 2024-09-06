@@ -11,7 +11,7 @@ impl Drop for MockLoggerGuard {
 }
 
 pub struct MockLogger {
-    mutex: LazyLock<RwLock<HashMap<ThreadId, Box<dyn log::Log>>>>,
+    mutex: LazyLock<RwLock<HashMap<ThreadId, (Box<dyn log::Log>, log::LevelFilter)>>>,
 }
 
 impl MockLogger {
@@ -19,6 +19,7 @@ impl MockLogger {
         MockLogger {
             mutex: LazyLock::new(|| {
                 let _ = log::set_logger(&MOCK_LOGGER);
+                log::set_max_level(log::LevelFilter::Trace);
                 RwLock::new(HashMap::new())
             }),
         }
@@ -26,13 +27,11 @@ impl MockLogger {
 
     pub fn set_logger<'a>(
         logger: impl log::Log + 'static,
-        level: log::LevelFilter
+        max_level: log::LevelFilter
     ) -> MockLoggerGuard {
         MOCK_LOGGER.mutex.write()
             .expect("mutex is poisoned")
-            .insert(std::thread::current().id(), Box::new(logger));
-
-        log::set_max_level(level);
+            .insert(std::thread::current().id(), (Box::new(logger), max_level));
 
         MockLoggerGuard
     }
@@ -45,7 +44,7 @@ impl MockLogger {
 impl log::Log for MockLogger {
     fn enabled(&self, metadata: &log::Metadata) -> bool {
         if
-            let Some(logger) = self.mutex
+            let Some((logger, _)) = self.mutex
                 .read()
                 .expect("mutex is poisoned")
                 .get(&std::thread::current().id())
@@ -58,18 +57,20 @@ impl log::Log for MockLogger {
 
     fn log(&self, record: &log::Record) {
         if
-            let Some(logger) = self.mutex
+            let Some((logger, max_level)) = self.mutex
                 .read()
                 .expect("mutex is poisoned")
                 .get(&std::thread::current().id())
         {
-            logger.log(record);
+            if record.level() <= *max_level {
+                logger.log(record);
+            }
         }
     }
 
     fn flush(&self) {
         if
-            let Some(logger) = self.mutex
+            let Some((logger, _)) = self.mutex
                 .read()
                 .expect("mutex is poisoned")
                 .get(&std::thread::current().id())
@@ -97,11 +98,16 @@ mod tests {
     #[test]
     fn it_works() {
         let mut my_logger = MockMyLogger::new();
-        my_logger.expect_log().once().return_const(());
+        my_logger
+            .expect_log()
+            .withf(|r| r.level() == log::LevelFilter::Info)
+            .once()
+            .return_const(());
 
-        let _guard = MockLogger::set_logger(my_logger, log::LevelFilter::Trace);
+        let _guard = MockLogger::set_logger(my_logger, log::LevelFilter::Info);
 
         log::info!("ok");
+        log::trace!("ok");
     }
 
     #[test]
@@ -109,8 +115,8 @@ mod tests {
         let mut my_logger = MockMyLogger::new();
         my_logger.expect_log().never().return_const(());
 
-        let _guard = MockLogger::set_logger(my_logger, log::LevelFilter::Trace);
+        let _guard = MockLogger::set_logger(my_logger, log::LevelFilter::Info);
 
-        // log::info!("ok");
+        log::trace!("ok");
     }
 }
