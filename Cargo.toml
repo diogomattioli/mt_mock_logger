@@ -2,6 +2,7 @@
 name = "mock_logger"
 version = "0.1.0"
 edition = "2021"
+authors = ["Diogo Mattioli <diogomattioli@gmail.com>"]
 
 [dependencies]
 log = "0.4.22"
