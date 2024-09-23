@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 authors = ["Diogo Mattioli <diogomattioli@gmail.com>"]
 license = "MIT"
-description = "A multi-threaded mock logger designed to support logger mocking across multiple tests running in parallel"
+description = "A thread safe mock logger designed to support logger mocking across multiple tests running in parallel"
 
 [dependencies]
 log = "0.4.22"
