@@ -25,7 +25,7 @@ impl MockLogger {
         }
     }
 
-    pub fn set_logger<'a>(
+    pub fn set_logger(
         logger: impl log::Log + 'static,
         max_level: log::LevelFilter
     ) -> MockLoggerGuard {
