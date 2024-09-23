@@ -11,6 +11,7 @@ impl Drop for MockLoggerGuard {
 }
 
 pub struct MockLogger {
+    #[allow(clippy::type_complexity)]
     mutex: LazyLock<RwLock<HashMap<ThreadId, (Box<dyn log::Log>, log::LevelFilter)>>>,
 }
 
