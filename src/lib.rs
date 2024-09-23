@@ -101,7 +101,7 @@ mod tests {
         let mut my_logger = MockMyLogger::new();
         my_logger
             .expect_log()
-            .withf(|r| r.level() == log::LevelFilter::Info)
+            .withf(|r| r.level() == log::LevelFilter::Info && r.args().as_str() == Some("ok"))
             .once()
             .return_const(());
 
