@@ -5,7 +5,7 @@ edition = "2021"
 license = "MIT"
 authors = ["Diogo Mattioli <diogomattioli@gmail.com>"]
 repository = "https://github.com/diogomattioli/mt_mock_logger"
-description = "A thread safe mock logger designed to support logger mocking across multiple tests running in parallel"
+description = "A thread-safe mock logger for multiple tests running in parallel"
 
 [dependencies]
 log = "0.4"

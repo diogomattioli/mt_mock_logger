@@ -1,6 +1,6 @@
 # mt-mock-logger
 
-A thread safe mock logger designed to support logger mocking across multiple tests running in parallel.
+A thread-safe mock logger designed to support logger mocking across multiple tests running in parallel.
 
 The injected logger is automatically scoped to the lifetime of the returned `MockLoggerGuard` provided by the `set_logger` function.
 
