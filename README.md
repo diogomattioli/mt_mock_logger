@@ -1,6 +1,6 @@
 # mt-mock-logger
 
-A thread-safe mock logger designed to support logger mocking across multiple tests running in parallel.
+A thread-safe mock logger designed to support mocking across multiple tests running in parallel.
 
 The injected logger is automatically scoped to the lifetime of the returned `MockLoggerGuard` provided by the `set_logger` function.
 
@@ -8,9 +8,15 @@ The `MockLogger` is not intended for use with async. Since it binds the injected
 
 # Usage
 
+```toml
+[dev-dependencies]
+mt-mock-logger = "0.1"
+```
+
 ```rust
 #[cfg(test)]
 mod tests {
+    use mt_mock_logger::MockLogger;
     use mockall::mock;
 
     use super::*;
